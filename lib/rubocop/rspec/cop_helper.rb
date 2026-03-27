@@ -6,6 +6,12 @@ require 'tempfile'
 module CopHelper
   extend RSpec::SharedContext
 
+  @plugins_integrated = false
+
+  class << self
+    attr_accessor :plugins_integrated
+  end
+
   let(:ruby_version) do
     # The minimum version Prism can parse is 3.3.
     ENV['PARSER_ENGINE'] == 'parser_prism' ? 3.3 : RuboCop::TargetRuby::DEFAULT_VERSION
@@ -18,11 +24,13 @@ module CopHelper
 
   before(:all) do
     next if ENV['RUBOCOP_CORE_DEVELOPMENT']
+    next if CopHelper.plugins_integrated
 
     plugins = Gem.loaded_specs.filter_map do |feature_name, feature_specification|
       feature_name if feature_specification.metadata['default_lint_roller_plugin']
     end
     RuboCop::Plugin.integrate_plugins(RuboCop::Config.new, plugins)
+    CopHelper.plugins_integrated = true
   end
 
   def inspect_source(source, file = nil)
